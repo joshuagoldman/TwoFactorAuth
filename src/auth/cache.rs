@@ -32,6 +32,7 @@ pub struct CacheReturn<T,U> {
 pub struct Cache<T> {
     items: HashMap<T, SessionInfo>,
     time_limit: String,
+    pub life_time_guid: uuid::Uuid
 }
 
 impl <T: std::cmp::Eq + PartialEq + Hash + Clone + std::fmt::Display>Cache<T> {
@@ -39,6 +40,7 @@ impl <T: std::cmp::Eq + PartialEq + Hash + Clone + std::fmt::Display>Cache<T> {
         Cache {
             time_limit,
             items: HashMap::new(),
+            life_time_guid: uuid::Uuid::new_v4()
         }
     }
 
@@ -54,6 +56,12 @@ impl <T: std::cmp::Eq + PartialEq + Hash + Clone + std::fmt::Display>Cache<T> {
                 token_has_not_expired(&x.refresh_time, &self.time_limit) && x.logged_in
             }
             None => false,
+        }
+    }
+
+    pub fn remove(&mut self, key: T) {
+        if self.items.get(&key).is_some() {
+            self.items.remove(&key).unwrap();
         }
     }
 

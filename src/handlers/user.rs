@@ -139,6 +139,7 @@ async fn has_expired(credentials: BearerAuth,
 
             {
                 let local_cache = login_cache_data.lock().await;
+                println!("at expired {}", local_cache.life_time_guid);
 
                 if local_cache.check(claims_val.id) {
                     res = false;

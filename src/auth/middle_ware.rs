@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use actix_web::{
     dev::ServiceRequest,
     error::Error,
@@ -13,11 +15,11 @@ use dotenv::dotenv;
 use hmac::{Hmac, Mac};
 use jwt::VerifyWithKey;
 use sha2::Sha256;
+use tokio::sync::Mutex;
+use uuid::Uuid;
 use crate::{auth::models::TokenClaims};
 
-use crate::auth::cache::AppCache;
-
-use super::models::{SessionInfo, TokenClaimsWithTime};
+use super::{models::{SessionInfo, TokenClaimsWithTime}, cache::Cache};
 
 pub fn get_jwt_claims<'a>(token_string: &str, jwt_secret: &'a String) ->  Result<TokenClaims, &'a str> {
     let key: Hmac<Sha256> = Hmac::new_from_slice(jwt_secret.as_bytes()).unwrap();
@@ -54,7 +56,7 @@ pub async fn validator(
     let token_string = credentials.token();
 
     let claims = get_jwt_claims(token_string, &jwt_secret);
-    let login_cache_data = req.app_data::<Data<AppCache<uuid::Uuid>>>().unwrap();
+    let login_cache_data = req.app_data::<Data<Arc<Mutex<Cache<Uuid>>>>>().unwrap();
     let mut res = true;
 
     match claims {
@@ -62,6 +64,7 @@ pub async fn validator(
 
             {
                 let mut local_cache = login_cache_data.lock().await;
+                println!("at validator: {}", local_cache.life_time_guid);
 
                 if local_cache.check(value.id) {
                     let session_info = SessionInfo {
@@ -75,6 +78,7 @@ pub async fn validator(
                     req.extensions_mut().insert(value);
                 }
                 else {
+                    local_cache.remove(value.id);
                     res = false;
                 }
             }
