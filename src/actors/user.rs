@@ -1,6 +1,11 @@
+use std::{time::SystemTime, sync::Arc};
+
 use actix::{Handler, Message};
+use actix_web::web::Data;
 use diesel::prelude::*;
-use crate::{actors::*, database::{models::{User, NewUser, UserResponse, LoginResponse, OtpResponse}}, schema, auth};
+use tokio::sync::Mutex;
+use uuid::Uuid;
+use crate::{actors::*, database::{models::{User, NewUser, UserResponse, LoginResponse, OtpResponse}}, schema, auth::{self, cache::Cache, models::SessionInfo}};
 use argonautica::{Hasher, Verifier};
 use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
@@ -123,7 +128,7 @@ impl Handler<Login> for DbActor {
 
                 if is_valid {
                     let jwt_secret: Hmac<Sha256> = Hmac::new_from_slice(self.config.jwt_secret_basic.as_bytes(),).unwrap();
-                    let claims = auth::models::TokenClaims { id: found_user.id, created: std::time::SystemTime::now()};
+                    let claims = auth::models::TokenClaimsWithTime { id: found_user.id, created: SystemTime::now()};
                     let token_str = claims.sign_with_key(&jwt_secret).unwrap();
 
                     Ok(
@@ -145,19 +150,19 @@ impl Handler<Login> for DbActor {
 #[rtype(result="Result<LoginResponse, String>")]
 pub struct VerifyOtp {
     pub otp: String,
-    pub token: String
+    pub token: String,
+    pub login_cache: Data<Arc<Mutex<Cache<Uuid>>>>
 }
 
 impl Handler<VerifyOtp> for DbActor {
     type Result = Result<LoginResponse, String>;
-
     
     fn handle(&mut self, msg: VerifyOtp, _: &mut Self::Context) -> Self::Result {
         let mut conn = self.pool.get().expect("Unable to get a connection");
 
-        let claims = auth::middle_ware::get_jwt_claims(&msg.token, &self.config.jwt_secret_basic).unwrap();
+        let claims = auth::middle_ware::get_jwt_claims_with_time(&msg.token, &self.config.jwt_secret_basic).unwrap();
 
-        if !auth::middle_ware::token_has_not_expired(&claims.created, &self.config.otp_duration) {
+        if !auth::cache::token_has_not_expired(&claims.created, &self.config.otp_duration) {
             return Err("Token for validating otp has expired!".to_string());
         }
 
@@ -176,8 +181,20 @@ impl Handler<VerifyOtp> for DbActor {
 
                 if code == msg.otp {
                     let jwt_secret: Hmac<Sha256> = Hmac::new_from_slice(self.config.jwt_secret_otp.as_bytes(),).unwrap();
-                    let claims = auth::models::TokenClaims { id: found_user.id, created: std::time::SystemTime::now()};
+                    let claims = auth::models::TokenClaims { id: found_user.id};
                     let token_str = claims.sign_with_key(&jwt_secret).unwrap();
+              
+                    {
+                        let mut local_cache = msg.login_cache.blocking_lock();
+
+                        let session_info = SessionInfo {
+                            id: found_user.id,
+                            logged_in: true,
+                            refresh_time: std::time::SystemTime::now()
+                        };
+
+                        local_cache.set(found_user.id, session_info).unwrap();
+                    }
 
                     Ok(
                         LoginResponse {
@@ -245,6 +262,28 @@ impl Handler<RemoveUser> for DbActor {
 
         let res =
             diesel::delete(schema::users::dsl::users)
+                .filter(schema::users::dsl::id.eq(msg.id))
+                .get_result::<User>(&mut conn);
+
+        get_user_resp(res)
+    }
+}
+
+#[derive(Message)]
+#[rtype(result="QueryResult<UserResponse>")]
+pub struct GetUser {
+    pub id: uuid::Uuid
+}
+
+impl Handler<GetUser> for DbActor {
+    type Result = QueryResult<UserResponse>;
+
+    
+    fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
+        let mut conn = self.pool.get().expect("Unable to get a connection");
+
+        let res =
+            schema::users::dsl::users
                 .filter(schema::users::dsl::id.eq(msg.id))
                 .get_result::<User>(&mut conn);
 

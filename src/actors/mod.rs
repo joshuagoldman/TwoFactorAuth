@@ -12,5 +12,5 @@ impl Actor for DbActor {
 
 pub struct DbActor {
     pub pool: Pool<ConnectionManager<PgConnection>>,
-    pub config: crate::config::Config
+    pub config: crate::config::Config,
 }

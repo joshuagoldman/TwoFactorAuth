@@ -20,6 +20,8 @@ parse_duration = "2.1.1"
 envconfig = "0.10.0"
 google-authenticator = "0.3.0"
 magic-crypt = "3.1.12"
+actix-cors = "0.6.4"
+tokio = {version = "1", features = ["full"]}
 
 # DEPENDENCIES SPECIFIC TO AUTH
 actix-web-httpauth = "0.8.0"

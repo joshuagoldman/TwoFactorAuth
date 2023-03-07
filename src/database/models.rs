@@ -1,11 +1,11 @@
 use diesel::prelude::*;
 use serde::{Serialize, Deserialize};
-use crate::schema::users;
+use crate::{schema::users};
 use actix::Addr;
 
 pub struct AppState {
     pub addr: Addr<crate::actors::DbActor>
- }
+}
 
 #[derive(Queryable, Debug, Serialize, Deserialize)]
 pub struct User {
@@ -16,7 +16,7 @@ pub struct User {
     pub full_name: Option<String>,
     pub otp_secret_encrypted: Option<String>,
     pub created_at: std::time::SystemTime,
-    pub updated_at: std::time::SystemTime
+    pub updated_at: std::time::SystemTime,
 }
 
 #[derive(Queryable, Debug, Serialize, Deserialize)]
