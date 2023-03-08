@@ -54,6 +54,7 @@ async fn main() -> std::io::Result<()> {
                     .service(authentication_web_api::handlers::user::change_password)
                     .service(authentication_web_api::handlers::user::delete_user)
                     .service(authentication_web_api::handlers::user::get_user)
+                    .service(authentication_web_api::handlers::user::logout)
             )
     })
     .bind(format!("{}:{}", &host, &port))?
