@@ -1,5 +1,5 @@
-use serde::Deserialize;
 use envconfig::Envconfig;
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone, Envconfig)]
 pub struct Config {
@@ -20,12 +20,13 @@ pub struct Config {
     #[envconfig(from = "SESSION_DURATION")]
     pub session_duration: String,
     #[envconfig(from = "OTP_DURATION")]
-    pub otp_duration: String
+    pub otp_duration: String,
+    #[envconfig(from = "ALLOWED_ORIGIN")]
+    pub allowed_origin: String,
 }
 
 impl Config {
     pub fn from_env() -> Result<Config, String> {
-
         let config_res = Config::init_from_env();
 
         match config_res {
@@ -33,7 +34,7 @@ impl Config {
                 let web_api_config: Config = res;
                 Ok(web_api_config)
             }
-            Err(err) => Result::Err(err.to_string())
+            Err(err) => Result::Err(err.to_string()),
         }
     }
 }

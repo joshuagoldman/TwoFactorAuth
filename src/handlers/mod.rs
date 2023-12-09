@@ -1,8 +1,15 @@
 pub mod user;
 
-use actix_web::{Responder, get};
+use actix_web::{get, HttpResponse, Responder};
 
+#[derive(Debug, serde::Serialize)]
+struct StrResponse {
+    str_resp: String,
+}
 #[get("/")]
 async fn index() -> impl Responder {
-    "Welcome to auth web api!"
+    HttpResponse::Ok().json(StrResponse {
+        str_resp: "Welcome to auth web api!".to_string(),
+    })
 }
+
