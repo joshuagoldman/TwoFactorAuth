@@ -1,0 +1,8 @@
+apiVersion : v1
+kind : ConfigMap
+metadata:
+  name : db-config
+  namespace: dev
+data:
+  dbName: joshuadb
+  pgData: /var/lib/postgresql/data/db-files/
