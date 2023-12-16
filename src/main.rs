@@ -1,6 +1,7 @@
 use actix::SyncArbiter;
 use actix_cors::Cors;
 use actix_web::{
+    http,
     web::{self, Data},
     App, HttpServer,
 };
@@ -13,10 +14,10 @@ use dotenv::dotenv;
 
 fn cors_middle_ware() -> Cors {
     Cors::permissive()
-    //Cors::default() // <- Construct CORS middleware builder
-    //.allowed_methods(vec!["GET", "POST", "DELETE", "PUT"])
-    //.allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
-    //.allowed_header(http::header::CONTENT_TYPE)
+    // Cors::default() // <- Construct CORS middleware builder
+    //    .allowed_methods(vec!["GET", "POST", "DELETE", "PUT"])
+    //   .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+    //  .allowed_header(http::header::CONTENT_TYPE)
     // .max_age(3600)
 }
 
