@@ -1,11 +1,10 @@
 use std::time::SystemTime;
 
-use actix_web::{dev::ServiceRequest, http::StatusCode, HttpResponse};
+use actix_web::{dev::ServiceRequest, HttpResponse};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use dotenv::*;
 use hmac::{digest::KeyInit, Hmac};
 use jwt::VerifyWithKey;
-use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use uuid::Uuid;
 

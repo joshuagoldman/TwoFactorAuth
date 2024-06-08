@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-use diesel::{deserialize::Queryable, prelude::Insertable};
+use diesel::{deserialize::Queryable, pg::Pg, prelude::Insertable, Selectable};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -10,10 +10,10 @@ pub struct GetTestTokenResponse {
     pub token: String,
 }
 
-#[derive(Clone, Queryable, Insertable, Debug, Serialize, Deserialize)]
-#[diesel(table_name = users)]
+#[derive(Clone, Queryable, Selectable, Insertable, Debug, Serialize, Deserialize)]
+#[diesel(table_name = users, check_for_backend(Pg))]
 pub struct User {
-    pub id: uuid::Uuid,
+    pub id: Uuid,
     pub username: String,
     pub email: String,
     pub password_hash: String,
@@ -37,4 +37,5 @@ impl User {
 }
 pub struct LoginResponse {
     pub token: String,
+    pub username: String,
 }

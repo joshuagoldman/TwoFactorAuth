@@ -3,7 +3,7 @@ create table public.users(
     username varchar not null unique,
     email varchar not null,
     password_hash varchar not null,
-    full_name varchar not null,
+    full_name varchar null,
     created_at timestamp not null default current_timestamp,
     updated_at timestamp not null default current_timestamp
 );

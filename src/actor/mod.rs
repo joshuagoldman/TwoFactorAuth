@@ -4,10 +4,10 @@ mod models;
 mod tests;
 mod user;
 
-use actix_web::{dev::ServiceRequest, http::StatusCode, HttpResponse, ResponseError};
+use actix_web::{dev::ServiceRequest, http::StatusCode, HttpResponse};
 use diesel::{
     r2d2::{ConnectionManager, Pool},
-    PgConnection, QueryResult,
+    PgConnection,
 };
 use serde::{Deserialize, Serialize};
 
@@ -46,4 +46,24 @@ pub fn get_message_err(
         message: err,
     });
     Err((err_resp, req))
+}
+
+pub fn diesel_err_to_string(err: diesel::result::Error) -> String {
+    match err {
+        diesel::result::Error::InvalidCString(_) => "Invalid C string".to_string(),
+        diesel::result::Error::DatabaseError(_, _) => "Database error".to_string(),
+        diesel::result::Error::NotFound => "Not found".to_string(),
+        diesel::result::Error::QueryBuilderError(_) => "Query builder error".to_string(),
+        diesel::result::Error::DeserializationError(_) => "Deserialization error".to_string(),
+        diesel::result::Error::SerializationError(_) => "Serialization error".to_string(),
+        diesel::result::Error::RollbackErrorOnCommit {
+            rollback_error: _,
+            commit_error: _,
+        } => "Rollback error on commit".to_string(),
+        diesel::result::Error::RollbackTransaction => "Rollback transaction".to_string(),
+        diesel::result::Error::AlreadyInTransaction => "Already in transaction".to_string(),
+        diesel::result::Error::NotInTransaction => "Not in transaction".to_string(),
+        diesel::result::Error::BrokenTransactionManager => "Broken transaction manager".to_string(),
+        _ => "Unknown database error".to_string(),
+    }
 }
