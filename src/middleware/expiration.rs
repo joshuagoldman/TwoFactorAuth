@@ -9,7 +9,10 @@ use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use uuid::Uuid;
 
-use crate::{actor::DbActor, schema};
+use crate::{
+    actor::{get_auth_failed_resp, get_message_err, DbActor},
+    schema,
+};
 use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, PooledConnection},
@@ -20,12 +23,6 @@ use super::{
     token_has_not_expired,
 };
 use crate::schema::sessions::dsl::user_id;
-
-#[derive(Serialize, Deserialize)]
-struct ErrorResponse {
-    code: String,
-    message: String,
-}
 
 pub async fn validator(
     req: ServiceRequest,
@@ -74,28 +71,6 @@ pub async fn validator(
     }
 
     Ok(req)
-}
-
-fn get_auth_failed_resp(
-    req: ServiceRequest,
-    err: diesel::result::Error,
-) -> std::result::Result<ServiceRequest, (HttpResponse, ServiceRequest)> {
-    let err_resp = HttpResponse::build(StatusCode::from_u16(500).unwrap()).json(ErrorResponse {
-        code: "400".to_string(),
-        message: err.to_string(),
-    });
-    Err((err_resp, req))
-}
-
-fn get_message_err(
-    req: ServiceRequest,
-    err: String,
-) -> std::result::Result<ServiceRequest, (HttpResponse, ServiceRequest)> {
-    let err_resp = HttpResponse::build(StatusCode::from_u16(500).unwrap()).json(ErrorResponse {
-        code: "400".to_string(),
-        message: err,
-    });
-    Err((err_resp, req))
 }
 
 pub fn get_jwt_claims_with_time<'a>(
