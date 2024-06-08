@@ -7,6 +7,7 @@ use hmac::{digest::KeyInit, Hmac};
 use jwt::VerifyWithKey;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
+use uuid::Uuid;
 
 use crate::{actor::DbActor, schema};
 use diesel::{
@@ -32,53 +33,47 @@ pub async fn validator(
 ) -> std::result::Result<ServiceRequest, (HttpResponse, ServiceRequest)> {
     dotenv().ok();
     let token_str = credentials.token();
-    if let Some(app_data) = req.app_data::<DbActor>() {
-        let jwt_secret_opt: Hmac<Sha256> =
-            Hmac::new_from_slice(app_data.config.jwt_secret_otp.as_bytes())
-                .expect("expected jwt otp secret");
-        let jwt_secret: Hmac<Sha256> = Hmac::new_from_slice(app_data.config.jwt_secret.as_bytes())
-            .expect("expected jwt secret");
+    let app_data: &DbActor;
+    let mut err: String = String::new();
+    let mut session_info: SessionInfo = SessionInfo::new();
+    let mut err_db: diesel::result::Error = diesel::result::Error::NotFound;
 
-        let claims;
-        let max_duration;
-        let session_type;
-        if let Ok(claims_otp) = get_jwt_claims_with_time(token_str, jwt_secret_opt) {
-            claims = claims_otp;
-            max_duration = app_data.config.otp_duration.clone();
-            session_type = SessionType::OTP;
-        } else if let Ok(claims_user) = get_jwt_claims_with_time(token_str, jwt_secret) {
-            claims = claims_user;
-            max_duration = app_data.config.session_duration.clone();
-            session_type = SessionType::UserPage;
-        } else {
-            return get_message_err(req, "Autentication failed".to_string());
-        }
-
-        let mut conn = app_data.pool.get().expect("unable to get connection");
-
-        let mut session_info: SessionInfo = SessionInfo::new();
-        let mut err: diesel::result::Error = diesel::result::Error::NotFound;
-        if !get_session(&claims, &mut conn, &mut session_info, &mut err) {
-            return get_auth_failed_resp(req, err);
-        }
-
-        if !token_has_not_expired(&session_info.refresh_time, &max_duration) {
-            return get_message_err(req, "Token has expired".to_string());
-        }
-
-        if !session_not_expired_action(&claims, &session_type, &mut conn, &mut err) {
-            return get_auth_failed_resp(req, err);
-        }
-
-        Ok(req)
+    if let Some(app_data_found) = req.app_data::<DbActor>() {
+        app_data = app_data_found;
     } else {
-        let err_resp =
-            HttpResponse::build(StatusCode::from_u16(400).unwrap()).json(ErrorResponse {
-                code: "400".to_string(),
-                message: "Authentication failed".to_string(),
-            });
-        Err((err_resp, req))
+        return get_message_err(req, err);
     }
+
+    let mut conn = app_data.pool.get().expect("unable to get connection");
+
+    let mut basic_info = ValidationBasicInfo::new();
+    if !get_validation_basic_info(app_data, token_str, &mut basic_info, &mut err) {
+        return get_message_err(req, err);
+    }
+
+    if !get_session(
+        &basic_info.claims,
+        &mut conn,
+        &mut session_info,
+        &mut err_db,
+    ) {
+        return get_auth_failed_resp(req, err_db);
+    }
+
+    if !token_has_not_expired(&session_info.refresh_time, &basic_info.max_duration) {
+        return get_message_err(req, "Token has expired".to_string());
+    }
+
+    if !session_not_expired_action(
+        &basic_info.claims,
+        &basic_info.session_type,
+        &mut conn,
+        &mut err_db,
+    ) {
+        return get_auth_failed_resp(req, err_db);
+    }
+
+    Ok(req)
 }
 
 fn get_auth_failed_resp(
@@ -153,5 +148,52 @@ fn session_not_expired_action(
             *err = error_info;
             false
         }
+    }
+}
+
+struct ValidationBasicInfo {
+    claims: TokenClaimsWithTime,
+    max_duration: String,
+    session_type: SessionType,
+}
+
+impl ValidationBasicInfo {
+    fn new() -> Self {
+        let claims = TokenClaimsWithTime {
+            id: Uuid::new_v4(),
+            created: SystemTime::now(),
+        };
+        Self {
+            claims,
+            max_duration: "1 hour".to_string(),
+            session_type: SessionType::UserPage,
+        }
+    }
+}
+
+fn get_validation_basic_info(
+    app_data: &DbActor,
+    token_str: &str,
+    basic_info: &mut ValidationBasicInfo,
+    err: &mut String,
+) -> bool {
+    let jwt_secret_opt: Hmac<Sha256> =
+        Hmac::new_from_slice(app_data.config.jwt_secret_otp.as_bytes())
+            .expect("expected jwt otp secret");
+    let jwt_secret: Hmac<Sha256> =
+        Hmac::new_from_slice(app_data.config.jwt_secret.as_bytes()).expect("expected jwt secret");
+    if let Ok(claims_otp) = get_jwt_claims_with_time(token_str, jwt_secret_opt) {
+        basic_info.claims = claims_otp;
+        basic_info.max_duration = app_data.config.otp_duration.clone();
+        basic_info.session_type = SessionType::OTP;
+        true
+    } else if let Ok(claims_user) = get_jwt_claims_with_time(token_str, jwt_secret) {
+        basic_info.claims = claims_user;
+        basic_info.max_duration = app_data.config.session_duration.clone();
+        basic_info.session_type = SessionType::UserPage;
+        true
+    } else {
+        *err = "Authentication failed".to_string();
+        false
     }
 }
