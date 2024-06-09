@@ -9,8 +9,8 @@ use sha2::Sha256;
 use crate::middleware::models::TokenClaimsWithTime;
 
 use super::{
-    actions::login::login,
-    models::{GetTestTokenResponse, LoginResponse},
+    actions::{create_user::create_user, login::login},
+    models::{CreateUserResponse, GetTestTokenResponse, LoginResponse},
     DbActor,
 };
 
@@ -47,5 +47,22 @@ impl Handler<Login> for DbActor {
 
     fn handle(&mut self, msg: Login, _: &mut Self::Context) -> Self::Result {
         login(self, msg)
+    }
+}
+
+#[derive(Message, Clone)]
+#[rtype(result = "std::result::Result<CreateUserResponse,String>")]
+pub struct Create {
+    pub password: String,
+    pub username: String,
+    pub email: String,
+    pub full_name: String,
+}
+
+impl Handler<Create> for DbActor {
+    type Result = std::result::Result<CreateUserResponse, String>;
+
+    fn handle(&mut self, msg: Create, _: &mut Self::Context) -> Self::Result {
+        create_user(&self, msg)
     }
 }

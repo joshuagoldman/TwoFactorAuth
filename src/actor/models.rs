@@ -18,6 +18,7 @@ pub struct User {
     pub email: String,
     pub password_hash: String,
     pub full_name: Option<String>,
+    pub otp_secret_encrypted: Option<String>,
     pub created_at: std::time::SystemTime,
     pub updated_at: std::time::SystemTime,
 }
@@ -30,6 +31,7 @@ impl User {
             email: String::new(),
             password_hash: String::new(),
             full_name: None,
+            otp_secret_encrypted: None,
             created_at: SystemTime::now(),
             updated_at: SystemTime::now(),
         }
@@ -38,4 +40,20 @@ impl User {
 pub struct LoginResponse {
     pub token: String,
     pub username: String,
+}
+
+pub struct CreateUserResponse {
+    pub user: NewUser,
+    pub qr_code: String,
+}
+
+#[derive(Clone, Queryable, Selectable, Insertable, Debug, Serialize, Deserialize)]
+#[diesel(table_name = users, check_for_backend(Pg))]
+pub struct NewUser {
+    pub id: Uuid,
+    pub username: String,
+    pub email: String,
+    pub password_hash: String,
+    pub full_name: Option<String>,
+    pub otp_secret_encrypted: Option<String>,
 }
