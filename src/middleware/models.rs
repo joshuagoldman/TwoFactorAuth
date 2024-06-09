@@ -11,6 +11,11 @@ pub struct TokenClaimsWithTime {
     pub created: std::time::SystemTime,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TokenClaims {
+    pub id: uuid::Uuid,
+}
+
 #[derive(Clone, Queryable, Insertable, Debug, Serialize, Deserialize)]
 #[diesel(table_name = sessions)]
 pub struct SessionInfo {

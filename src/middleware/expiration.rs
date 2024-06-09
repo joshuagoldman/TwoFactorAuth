@@ -4,7 +4,6 @@ use actix_web::{dev::ServiceRequest, HttpResponse};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use dotenv::*;
 use hmac::{digest::KeyInit, Hmac};
-use jwt::VerifyWithKey;
 use sha2::Sha256;
 
 use crate::{
@@ -17,10 +16,10 @@ use diesel::{
 };
 
 use super::{
-    models::{SessionInfo, SessionType, TokenClaimsWithTime},
+    get_jwt_claims, get_session,
+    models::{SessionInfo, SessionType, TokenClaims},
     token_has_not_expired,
 };
-use crate::schema::sessions::dsl::user_id;
 
 pub async fn validator(
     req: ServiceRequest,
@@ -45,7 +44,7 @@ pub async fn validator_std_res(
 
     let basic_info = get_validation_basic_info(app_data, token_str)?;
 
-    let session = get_session(&basic_info.claims, &mut conn)?;
+    let session = get_session(&basic_info.claims, &basic_info.session_type, &mut conn)?;
 
     if !token_has_not_expired(&session.refresh_time, &basic_info.max_duration) {
         return std::result::Result::Err("Token has expired".to_string());
@@ -63,30 +62,8 @@ fn get_app_data(req: &ServiceRequest) -> std::result::Result<&DbActor, String> {
     }
 }
 
-pub fn get_jwt_claims_with_time<'a>(
-    token_string: &str,
-    jwt_secret: Hmac<Sha256>,
-) -> std::result::Result<TokenClaimsWithTime, &'a str> {
-    token_string
-        .verify_with_key(&jwt_secret)
-        .map_err(|_| "Invalid token")
-}
-
-fn get_session(
-    claims: &TokenClaimsWithTime,
-    conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
-) -> std::result::Result<SessionInfo, String> {
-    match schema::sessions::dsl::sessions
-        .filter(user_id.eq(claims.id))
-        .get_result::<SessionInfo>(conn)
-    {
-        Ok(session_info) => Ok(session_info),
-        Err(err_info) => std::result::Result::Err(err_info.to_string()),
-    }
-}
-
 fn session_not_expired_action(
-    claims: &TokenClaimsWithTime,
+    claims: &TokenClaims,
     session_type: &SessionType,
     conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
 ) -> std::result::Result<(), String> {
@@ -105,7 +82,7 @@ fn session_not_expired_action(
 }
 
 struct ValidationBasicInfo {
-    claims: TokenClaimsWithTime,
+    claims: TokenClaims,
     max_duration: String,
     session_type: SessionType,
 }
@@ -119,13 +96,13 @@ fn get_validation_basic_info(
             .expect("expected jwt otp secret");
     let jwt_secret: Hmac<Sha256> =
         Hmac::new_from_slice(app_data.config.jwt_secret.as_bytes()).expect("expected jwt secret");
-    if let Ok(claims_otp) = get_jwt_claims_with_time(token_str, jwt_secret_opt) {
+    if let Ok(claims_otp) = get_jwt_claims(token_str, jwt_secret_opt) {
         Ok(ValidationBasicInfo {
             claims: claims_otp,
             max_duration: app_data.config.otp_duration.clone(),
             session_type: SessionType::OTP,
         })
-    } else if let Ok(claims_user) = get_jwt_claims_with_time(token_str, jwt_secret) {
+    } else if let Ok(claims_user) = get_jwt_claims(token_str, jwt_secret) {
         Ok(ValidationBasicInfo {
             claims: claims_user,
             max_duration: app_data.config.session_duration.clone(),
