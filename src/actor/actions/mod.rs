@@ -1,9 +1,12 @@
 use argonautica::Verifier;
 
-use super::{models::User, DbActor};
+use crate::database::models::User;
+
+use super::DbActor;
 
 pub mod create_user;
 pub mod delete_user;
+pub mod get_user;
 pub mod login;
 pub mod reset_password;
 pub mod token_has_expired;

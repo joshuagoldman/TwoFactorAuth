@@ -3,13 +3,11 @@ use diesel::{
     PgConnection,
 };
 
-use crate::actor::{
-    models::{User, UserResponse},
-    user::DeleteUser,
-    DbActor,
+use crate::{
+    actor::{get_claims, get_user_by_id, models::UserResponse, user::DeleteUser, DbActor},
+    database::models::User,
+    middleware::models::SessionType,
 };
-
-use super::is_valid;
 
 pub fn delete_user(
     db_actor: &DbActor,
@@ -17,9 +15,8 @@ pub fn delete_user(
 ) -> std::result::Result<UserResponse, String> {
     let mut conn = db_actor.pool.get().expect("Unable to get a connection");
 
-    let user = get_user(msg.username.clone(), &mut conn)?;
-
-    is_valid(&user, &msg.password, db_actor)?;
+    let claims = get_claims(&db_actor, &msg.token, SessionType::UserPage)?;
+    let user = get_user_by_id(&claims.id, &mut conn)?;
 
     delete_user_db(&user.username, &mut conn)?;
 
@@ -28,22 +25,6 @@ pub fn delete_user(
         email: user.email,
         full_name: user.full_name,
     })
-}
-
-fn get_user(
-    username_fr_client: String,
-    conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
-) -> Result<User, String> {
-    use crate::schema::users::dsl::{username, users};
-    use diesel::prelude::*;
-    let found_user = users
-        .filter(username.eq(username_fr_client))
-        .get_result::<User>(conn);
-
-    match found_user {
-        Ok(ok_res) => Ok(ok_res),
-        Err(err) => std::result::Result::Err(err.to_string()),
-    }
 }
 
 fn delete_user_db(

@@ -1,13 +1,10 @@
 use std::time::SystemTime;
 
 use actix_web::{dev::ServiceRequest, HttpResponse};
-use actix_web_httpauth::extractors::bearer::BearerAuth;
+use actix_web_httpauth::extractors::bearer::{BearerAuth, Error};
 use dotenv::*;
 
-use crate::{
-    actor::{get_message_err, DbActor},
-    schema,
-};
+use crate::{actor::DbActor, schema};
 use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, PooledConnection},
@@ -22,10 +19,10 @@ use super::{
 pub async fn validator(
     req: ServiceRequest,
     credentials: BearerAuth,
-) -> std::result::Result<ServiceRequest, (HttpResponse, ServiceRequest)> {
+) -> std::result::Result<ServiceRequest, (Error, ServiceRequest)> {
     match validator_std_res(&req, credentials).await {
         std::result::Result::Ok(()) => Ok(req),
-        std::result::Result::Err(err) => get_message_err(req, err),
+        std::result::Result::Err(_) => std::result::Result::Err((Error::InvalidToken, req)),
     }
 }
 

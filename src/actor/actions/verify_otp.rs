@@ -13,11 +13,8 @@ use magic_crypt::{new_magic_crypt, MagicCryptTrait};
 use sha2::Sha256;
 
 use crate::{
-    actor::{
-        models::{LoginResponse, User},
-        user::VerifyOtp,
-        DbActor,
-    },
+    actor::{get_claims, get_user_by_id, models::LoginResponse, user::VerifyOtp, DbActor},
+    database::models::User,
     middleware::models::{SessionInfo, SessionType, TokenClaims},
 };
 
@@ -27,7 +24,8 @@ pub fn verify_otp(
 ) -> std::result::Result<LoginResponse, String> {
     let mut conn = db_actor.pool.get().expect("Unable to get a connection");
 
-    let user = get_user(msg.username.clone(), &mut conn)?;
+    let claims = get_claims(db_actor, &msg.token, SessionType::OTP)?;
+    let user = get_user_by_id(&claims.id, &mut conn)?;
 
     let decrypt_secret = get_decrypt_secret(db_actor, &user)?;
 
@@ -49,24 +47,8 @@ pub fn verify_otp(
 
     Ok(LoginResponse {
         token: token_str,
-        username: msg.username,
+        username: user.username,
     })
-}
-
-fn get_user(
-    username_fr_client: String,
-    conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
-) -> Result<User, String> {
-    use crate::schema::users::dsl::{username, users};
-    use diesel::prelude::*;
-    let found_user = users
-        .filter(username.eq(username_fr_client))
-        .get_result::<User>(conn);
-
-    match found_user {
-        Ok(ok_res) => Ok(ok_res),
-        Err(err) => std::result::Result::Err(err.to_string()),
-    }
 }
 
 fn get_decrypt_secret(

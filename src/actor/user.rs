@@ -4,26 +4,27 @@ use actix::{Handler, Message};
 use diesel::QueryResult;
 use hmac::{digest::KeyInit, Hmac};
 use jwt::SignWithKey;
+use serde::Serialize;
 use sha2::Sha256;
 
 use crate::middleware::models::TokenClaimsWithTime;
 
 use super::{
     actions::{
-        create_user::create_user, delete_user::delete_user, login::login,
+        create_user::create_user, delete_user::delete_user, get_user::get_user, login::login,
         reset_password::reset_password, token_has_expired::token_has_expired,
         verify_otp::verify_otp, verify_password::verify_password,
     },
-    models::{CreateUserResponse, GetTestTokenResponse, LoginResponse, UserResponse},
+    models::{CreateUserResponse, GetTokenResponse, LoginResponse, UserResponse},
     DbActor,
 };
 
 #[derive(Message)]
-#[rtype(result = "QueryResult<GetTestTokenResponse>")]
+#[rtype(result = "QueryResult<GetTokenResponse>")]
 pub struct EmptyReq();
 
 impl Handler<EmptyReq> for DbActor {
-    type Result = QueryResult<GetTestTokenResponse>;
+    type Result = QueryResult<GetTokenResponse>;
 
     fn handle(&mut self, _msg: EmptyReq, _: &mut Self::Context) -> Self::Result {
         let jwt_secret: Hmac<Sha256> =
@@ -35,7 +36,7 @@ impl Handler<EmptyReq> for DbActor {
         };
         let token_str = claims.sign_with_key(&jwt_secret).unwrap();
 
-        Result::Ok(GetTestTokenResponse { token: token_str })
+        Result::Ok(GetTokenResponse { token: token_str })
     }
 }
 
@@ -54,7 +55,7 @@ impl Handler<Login> for DbActor {
     }
 }
 
-#[derive(Message, Clone)]
+#[derive(Message, Clone, Serialize)]
 #[rtype(result = "std::result::Result<CreateUserResponse,String>")]
 pub struct Create {
     pub password: String,
@@ -75,9 +76,7 @@ impl Handler<Create> for DbActor {
 #[rtype(result = "std::result::Result<LoginResponse,String>")]
 pub struct VerifyOtp {
     pub otp: String,
-    pub username: String,
-    pub email: String,
-    pub full_name: String,
+    pub token: String,
 }
 
 impl Handler<VerifyOtp> for DbActor {
@@ -92,7 +91,7 @@ impl Handler<VerifyOtp> for DbActor {
 #[rtype(result = "std::result::Result<UserResponse,String>")]
 pub struct ResetPassword {
     pub password: String,
-    pub username: String,
+    pub token: String,
 }
 
 impl Handler<ResetPassword> for DbActor {
@@ -106,8 +105,7 @@ impl Handler<ResetPassword> for DbActor {
 #[derive(Message, Clone)]
 #[rtype(result = "std::result::Result<UserResponse,String>")]
 pub struct DeleteUser {
-    pub username: String,
-    pub password: String,
+    pub token: String,
 }
 
 impl Handler<DeleteUser> for DbActor {
@@ -144,5 +142,19 @@ impl Handler<TokenHasExpired> for DbActor {
 
     fn handle(&mut self, msg: TokenHasExpired, _: &mut Self::Context) -> Self::Result {
         token_has_expired(&self, msg)
+    }
+}
+
+#[derive(Message, Clone)]
+#[rtype(result = "std::result::Result<UserResponse,String>")]
+pub struct GetUser {
+    pub username: String,
+}
+
+impl Handler<GetUser> for DbActor {
+    type Result = std::result::Result<UserResponse, String>;
+
+    fn handle(&mut self, msg: GetUser, _: &mut Self::Context) -> Self::Result {
+        get_user(&self, msg)
     }
 }

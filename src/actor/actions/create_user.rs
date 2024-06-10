@@ -5,11 +5,9 @@ use diesel::{
 };
 use magic_crypt::{new_magic_crypt, MagicCryptTrait};
 
-use crate::actor::{
-    models::{CreateUserResponse, NewUser, User},
-    to_hash,
-    user::Create,
-    DbActor,
+use crate::{
+    actor::{models::CreateUserResponse, to_hash, user::Create, DbActor},
+    database::models::{NewUser, User},
 };
 
 pub fn create_user(

@@ -14,12 +14,8 @@ use jwt::SignWithKey;
 use sha2::Sha256;
 
 use crate::{
-    actor::{
-        diesel_err_to_string,
-        models::{LoginResponse, User},
-        user::Login,
-        DbActor,
-    },
+    actor::{diesel_err_to_string, models::LoginResponse, user::Login, DbActor},
+    database::models::User,
     middleware::models::{SessionInfo, SessionType, TokenClaimsWithTime},
 };
 
