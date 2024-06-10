@@ -1,4 +1,3 @@
-use argonautica::Hasher;
 use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, PooledConnection},
@@ -8,6 +7,7 @@ use magic_crypt::{new_magic_crypt, MagicCryptTrait};
 
 use crate::actor::{
     models::{CreateUserResponse, NewUser, User},
+    to_hash,
     user::Create,
     DbActor,
 };
@@ -62,18 +62,5 @@ fn insert_new_user(
     match resp {
         Ok(user) => Ok(user),
         std::result::Result::Err(err) => std::result::Result::Err(err.to_string()),
-    }
-}
-
-fn to_hash(secret_key: &String, password: &String) -> std::result::Result<String, String> {
-    let mut hasher = Hasher::default();
-    let hasher_res = hasher
-        .with_password(password)
-        .with_secret_key(secret_key)
-        .hash();
-
-    match hasher_res {
-        Ok(hash_str) => Ok(hash_str),
-        Err(err) => std::result::Result::Err(err.to_string()),
     }
 }

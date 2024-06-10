@@ -2,13 +2,13 @@ use diesel::{
     r2d2::{ConnectionManager, PooledConnection},
     ExpressionMethods, PgConnection, QueryDsl,
 };
-use hmac::Hmac;
+use hmac::{digest::KeyInit, Hmac};
 use jwt::VerifyWithKey;
 use models::{SessionInfo, SessionType, TokenClaims, TokenClaimsWithTime};
 use parse_duration::parse;
 use sha2::Sha256;
 
-use crate::schema::{self};
+use crate::{actor::DbActor, schema};
 use diesel::prelude::*;
 
 pub mod expiration;
@@ -45,6 +45,38 @@ pub fn get_jwt_claims<'a>(
     token_string
         .verify_with_key(&jwt_secret)
         .map_err(|_| "Invalid token")
+}
+
+pub struct ValidationBasicInfo {
+    pub claims: TokenClaims,
+    pub max_duration: String,
+    pub session_type: SessionType,
+}
+
+pub fn get_validation_basic_info(
+    app_data: &DbActor,
+    token_str: &str,
+) -> std::result::Result<ValidationBasicInfo, String> {
+    let jwt_secret_opt: Hmac<Sha256> =
+        Hmac::new_from_slice(app_data.config.jwt_secret_otp.as_bytes())
+            .expect("expected jwt otp secret");
+    let jwt_secret: Hmac<Sha256> =
+        Hmac::new_from_slice(app_data.config.jwt_secret.as_bytes()).expect("expected jwt secret");
+    if let Ok(claims_otp) = get_jwt_claims(token_str, jwt_secret_opt) {
+        Ok(ValidationBasicInfo {
+            claims: claims_otp,
+            max_duration: app_data.config.otp_duration.clone(),
+            session_type: SessionType::OTP,
+        })
+    } else if let Ok(claims_user) = get_jwt_claims(token_str, jwt_secret) {
+        Ok(ValidationBasicInfo {
+            claims: claims_user,
+            max_duration: app_data.config.session_duration.clone(),
+            session_type: SessionType::UserPage,
+        })
+    } else {
+        std::result::Result::Err("Authentication failed".to_string())
+    }
 }
 
 pub fn get_session(

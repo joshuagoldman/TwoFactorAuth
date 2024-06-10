@@ -5,6 +5,7 @@ mod tests;
 mod user;
 
 use actix_web::{dev::ServiceRequest, http::StatusCode, HttpResponse};
+use argonautica::Hasher;
 use diesel::{
     r2d2::{ConnectionManager, Pool},
     PgConnection,
@@ -65,5 +66,18 @@ pub fn diesel_err_to_string(err: diesel::result::Error) -> String {
         diesel::result::Error::NotInTransaction => "Not in transaction".to_string(),
         diesel::result::Error::BrokenTransactionManager => "Broken transaction manager".to_string(),
         _ => "Unknown database error".to_string(),
+    }
+}
+
+pub fn to_hash(secret_key: &String, password: &String) -> std::result::Result<String, String> {
+    let mut hasher = Hasher::default();
+    let hasher_res = hasher
+        .with_password(password)
+        .with_secret_key(secret_key)
+        .hash();
+
+    match hasher_res {
+        Ok(hash_str) => Ok(hash_str),
+        Err(err) => std::result::Result::Err(err.to_string()),
     }
 }

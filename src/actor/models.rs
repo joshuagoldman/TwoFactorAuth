@@ -57,3 +57,10 @@ pub struct NewUser {
     pub full_name: Option<String>,
     pub otp_secret_encrypted: Option<String>,
 }
+
+#[derive(Queryable, Debug, Serialize, Deserialize)]
+pub struct UserResponse {
+    pub username: String,
+    pub email: String,
+    pub full_name: Option<String>,
+}

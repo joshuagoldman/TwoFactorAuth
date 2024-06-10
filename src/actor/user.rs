@@ -9,8 +9,12 @@ use sha2::Sha256;
 use crate::middleware::models::TokenClaimsWithTime;
 
 use super::{
-    actions::{create_user::create_user, login::login, verify_otp::verify_otp},
-    models::{CreateUserResponse, GetTestTokenResponse, LoginResponse},
+    actions::{
+        create_user::create_user, delete_user::delete_user, login::login,
+        reset_password::reset_password, token_has_expired::token_has_expired,
+        verify_otp::verify_otp, verify_password::verify_password,
+    },
+    models::{CreateUserResponse, GetTestTokenResponse, LoginResponse, UserResponse},
     DbActor,
 };
 
@@ -81,5 +85,64 @@ impl Handler<VerifyOtp> for DbActor {
 
     fn handle(&mut self, msg: VerifyOtp, _: &mut Self::Context) -> Self::Result {
         verify_otp(&self, msg)
+    }
+}
+
+#[derive(Message, Clone)]
+#[rtype(result = "std::result::Result<UserResponse,String>")]
+pub struct ResetPassword {
+    pub password: String,
+    pub username: String,
+}
+
+impl Handler<ResetPassword> for DbActor {
+    type Result = std::result::Result<UserResponse, String>;
+
+    fn handle(&mut self, msg: ResetPassword, _: &mut Self::Context) -> Self::Result {
+        reset_password(&self, msg)
+    }
+}
+
+#[derive(Message, Clone)]
+#[rtype(result = "std::result::Result<UserResponse,String>")]
+pub struct DeleteUser {
+    pub username: String,
+    pub password: String,
+}
+
+impl Handler<DeleteUser> for DbActor {
+    type Result = std::result::Result<UserResponse, String>;
+
+    fn handle(&mut self, msg: DeleteUser, _: &mut Self::Context) -> Self::Result {
+        delete_user(&self, msg)
+    }
+}
+
+#[derive(Message, Clone)]
+#[rtype(result = "std::result::Result<(),String>")]
+pub struct VerifyPassword {
+    pub username: String,
+    pub password: String,
+}
+
+impl Handler<VerifyPassword> for DbActor {
+    type Result = std::result::Result<(), String>;
+
+    fn handle(&mut self, msg: VerifyPassword, _: &mut Self::Context) -> Self::Result {
+        verify_password(&self, msg)
+    }
+}
+
+#[derive(Message, Clone)]
+#[rtype(result = "std::result::Result<bool,String>")]
+pub struct TokenHasExpired {
+    pub token: String,
+}
+
+impl Handler<TokenHasExpired> for DbActor {
+    type Result = std::result::Result<bool, String>;
+
+    fn handle(&mut self, msg: TokenHasExpired, _: &mut Self::Context) -> Self::Result {
+        token_has_expired(&self, msg)
     }
 }

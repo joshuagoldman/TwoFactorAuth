@@ -3,8 +3,6 @@ use std::time::SystemTime;
 use actix_web::{dev::ServiceRequest, HttpResponse};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 use dotenv::*;
-use hmac::{digest::KeyInit, Hmac};
-use sha2::Sha256;
 
 use crate::{
     actor::{get_message_err, DbActor},
@@ -16,7 +14,7 @@ use diesel::{
 };
 
 use super::{
-    get_jwt_claims, get_session,
+    get_session, get_validation_basic_info,
     models::{SessionInfo, SessionType, TokenClaims},
     token_has_not_expired,
 };
@@ -78,37 +76,5 @@ fn session_not_expired_action(
     {
         Ok(_) => Ok(()),
         Err(error_info) => std::result::Result::Err(error_info.to_string()),
-    }
-}
-
-struct ValidationBasicInfo {
-    claims: TokenClaims,
-    max_duration: String,
-    session_type: SessionType,
-}
-
-fn get_validation_basic_info(
-    app_data: &DbActor,
-    token_str: &str,
-) -> std::result::Result<ValidationBasicInfo, String> {
-    let jwt_secret_opt: Hmac<Sha256> =
-        Hmac::new_from_slice(app_data.config.jwt_secret_otp.as_bytes())
-            .expect("expected jwt otp secret");
-    let jwt_secret: Hmac<Sha256> =
-        Hmac::new_from_slice(app_data.config.jwt_secret.as_bytes()).expect("expected jwt secret");
-    if let Ok(claims_otp) = get_jwt_claims(token_str, jwt_secret_opt) {
-        Ok(ValidationBasicInfo {
-            claims: claims_otp,
-            max_duration: app_data.config.otp_duration.clone(),
-            session_type: SessionType::OTP,
-        })
-    } else if let Ok(claims_user) = get_jwt_claims(token_str, jwt_secret) {
-        Ok(ValidationBasicInfo {
-            claims: claims_user,
-            max_duration: app_data.config.session_duration.clone(),
-            session_type: SessionType::UserPage,
-        })
-    } else {
-        std::result::Result::Err("Authentication failed".to_string())
     }
 }
