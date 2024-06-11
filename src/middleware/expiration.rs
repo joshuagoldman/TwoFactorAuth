@@ -1,7 +1,6 @@
 use std::time::SystemTime;
 
-use actix_web::{dev::ServiceRequest, HttpResponse};
-use actix_web_httpauth::extractors::bearer::{BearerAuth, Error};
+use actix_web::dev::ServiceRequest;
 use dotenv::*;
 
 use crate::{actor::DbActor, schema};
@@ -11,33 +10,20 @@ use diesel::{
 };
 
 use super::{
-    get_session, get_validation_basic_info,
+    get_session, get_token_str, get_validation_basic_info,
     models::{SessionInfo, SessionType, TokenClaims},
     token_has_not_expired,
 };
 
-pub async fn validator(
-    req: ServiceRequest,
-    credentials: BearerAuth,
-) -> std::result::Result<ServiceRequest, (Error, ServiceRequest)> {
-    match validator_std_res(&req, credentials).await {
-        std::result::Result::Ok(()) => Ok(req),
-        std::result::Result::Err(_) => std::result::Result::Err((Error::InvalidToken, req)),
-    }
-}
-
-pub async fn validator_std_res(
-    req: &ServiceRequest,
-    credentials: BearerAuth,
-) -> std::result::Result<(), String> {
+pub fn validator(req: &ServiceRequest) -> std::result::Result<(), String> {
     dotenv().ok();
-    let token_str = credentials.token();
+    let token_str = get_token_str(req)?;
 
     let app_data = get_app_data(&req)?;
 
     let mut conn = app_data.pool.get().expect("unable to get connection");
 
-    let basic_info = get_validation_basic_info(app_data, token_str)?;
+    let basic_info = get_validation_basic_info(app_data, &token_str)?;
 
     let session = get_session(&basic_info.claims, &basic_info.session_type, &mut conn)?;
 

@@ -3,11 +3,10 @@ use actix_web::{
     web::{self, Data},
     App, HttpServer,
 };
-use actix_web_httpauth::middleware::HttpAuthentication;
 use dotenv::dotenv;
 use two_factor_auth_gen::{
     actor::DbActor, config::Config, database::connect::get_pool, handlers,
-    middleware::expiration::validator, AppState,
+    middleware::authentication::Authentication, AppState,
 };
 
 #[actix_web::main]
@@ -21,8 +20,6 @@ async fn main() -> std::io::Result<()> {
     println!("Running on address {}:{}", &host, &port);
 
     HttpServer::new(move || {
-        let bearer_middleware = HttpAuthentication::bearer(validator);
-
         let pool = get_pool(&database_url);
         let config = Config::from_env().unwrap();
         let db_addr = SyncArbiter::start(5, move || DbActor {
@@ -39,7 +36,7 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::user::has_expired)
             .service(
                 web::scope("")
-                    .wrap(bearer_middleware)
+                    .wrap(Authentication)
                     .service(handlers::user::change_password)
                     .service(handlers::user::delete_user)
                     .service(handlers::user::get_user),

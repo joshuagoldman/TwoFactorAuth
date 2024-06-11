@@ -1,3 +1,4 @@
+use actix_web::{dev::ServiceRequest, http::header::HeaderValue};
 use diesel::{
     r2d2::{ConnectionManager, PooledConnection},
     ExpressionMethods, PgConnection, QueryDsl,
@@ -11,6 +12,7 @@ use sha2::Sha256;
 use crate::{actor::DbActor, schema};
 use diesel::prelude::*;
 
+pub mod authentication;
 pub mod expiration;
 pub mod models;
 
@@ -91,5 +93,23 @@ pub fn get_session(
     {
         Ok(session_info) => Ok(session_info),
         Err(err_info) => std::result::Result::Err(err_info.to_string()),
+    }
+}
+
+pub fn get_token_str(req: &ServiceRequest) -> std::result::Result<String, String> {
+    let token_str_res = get_token_str_res(req.headers().get("AUTHORIZATION"))?;
+
+    match token_str_res.to_str() {
+        Ok(token_str) => Ok(token_str.to_string()),
+        Err(err) => std::result::Result::Err(err.to_string()),
+    }
+}
+
+fn get_token_str_res(
+    token_str_res_opt: Option<&HeaderValue>,
+) -> std::result::Result<&HeaderValue, String> {
+    match token_str_res_opt {
+        Some(token_str_res) => Ok(token_str_res),
+        _ => std::result::Result::Err("Could extract token from header".to_string()),
     }
 }

@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix = "0.13.3"
-actix-web = "4.6.0"
+actix = "0.13.5"
+actix-web = "4.7.0"
 chrono = { version = "0.4.38", features = ["serde"] }
 dotenv = "0.15.0"
 serde = { version = "1.0.203", features = ["derive"] }
@@ -22,9 +22,10 @@ google-authenticator = "0.4.2"
 magic-crypt = "3.1.13"
 actix-cors = "0.7.0"
 tokio = {version = "1", features = ["full"]}
+futures-util = "0.3.30"
 
 # DEPENDENCIES SPECIFIC TO AUTH
-actix-web-httpauth = "0.8.1"
+actix-web-httpauth = "0.8.2"
 argonautica = "0.2.0"
 hmac = "0.12.1"
 jwt = "0.16.0"
