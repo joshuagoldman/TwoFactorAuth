@@ -1,6 +1,6 @@
 use actix_web::{
     delete, get, post,
-    web::{Data, Json, Path},
+    web::{self, Data, Json, Path},
     HttpResponse, Responder,
 };
 use actix_web_httpauth::extractors::bearer::BearerAuth;
@@ -8,6 +8,7 @@ use actix_web_httpauth::extractors::bearer::BearerAuth;
 use crate::{
     actor::user::{Create, DeleteUser, GetUser, Login, ResetPassword, TokenHasExpired, VerifyOtp},
     handlers::models::{LoginData, NewUserData},
+    middleware::models::TokenClaims,
     AppState,
 };
 
@@ -51,15 +52,19 @@ async fn login(user: Json<LoginData>, state: Data<AppState>) -> impl Responder {
 #[get("/verifyotp/{otp}")]
 async fn verify_otp(
     otp: Path<String>,
-    credentials: BearerAuth,
+    claims_opt: Option<web::ReqData<TokenClaims>>,
     state: Data<AppState>,
 ) -> impl Responder {
     let addr = state.as_ref().addr.clone();
 
+    if claims_opt.is_none() {
+        return HttpResponse::NonAuthoritativeInformation().json("Something went wrong");
+    }
+
     match addr
         .send(VerifyOtp {
             otp: otp.into_inner(),
-            token: credentials.token().to_string(),
+            id: claims_opt.unwrap().id,
         })
         .await
     {
@@ -72,16 +77,20 @@ async fn verify_otp(
 #[post("/changepass/{password}")]
 async fn change_password(
     password: Path<String>,
-    credentials: BearerAuth,
+    claims_opt: Option<web::ReqData<TokenClaims>>,
     state: Data<AppState>,
 ) -> impl Responder {
     let addr = state.as_ref().addr.clone();
     let password = password.into_inner();
 
+    if claims_opt.is_none() {
+        return HttpResponse::NonAuthoritativeInformation().json("Something went wrong");
+    }
+
     match addr
         .send(ResetPassword {
             password,
-            token: credentials.token().to_string(),
+            id: claims_opt.unwrap().id,
         })
         .await
     {
@@ -91,12 +100,18 @@ async fn change_password(
 }
 
 #[delete("/")]
-async fn delete_user(credentials: BearerAuth, state: Data<AppState>) -> impl Responder {
+async fn delete_user(
+    claims_opt: Option<web::ReqData<TokenClaims>>,
+    state: Data<AppState>,
+) -> impl Responder {
     let addr = state.as_ref().addr.clone();
 
+    if claims_opt.is_none() {
+        return HttpResponse::NonAuthoritativeInformation().json("Something went wrong");
+    }
     match addr
         .send(DeleteUser {
-            token: credentials.token().to_string(),
+            id: claims_opt.unwrap().id,
         })
         .await
     {

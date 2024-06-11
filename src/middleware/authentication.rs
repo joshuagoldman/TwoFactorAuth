@@ -3,7 +3,7 @@ use std::future::{ready, Ready};
 use actix_web::{
     body::EitherBody,
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpResponse,
+    Error, HttpMessage, HttpResponse,
 };
 use futures_util::{future::LocalBoxFuture, FutureExt};
 
@@ -53,6 +53,8 @@ where
             let res = ServiceResponse::new(http_req, http_res);
             // Map to R type
             return (async move { Ok(res.map_into_right_body()) }).boxed_local();
+        } else if let Ok(claims) = validation_res {
+            req.extensions_mut().insert(claims);
         }
 
         // Continue with the next middleware / handler

@@ -1,5 +1,3 @@
-use std::io;
-
 use actix::{Actor, SyncContext};
 pub mod actions;
 pub mod models;
@@ -7,7 +5,6 @@ pub mod tests;
 pub mod user;
 
 use actix_web::{dev::ServiceRequest, http::StatusCode, HttpResponse};
-use actix_web_httpauth::extractors::bearer::Error;
 use argonautica::Hasher;
 use diesel::{
     r2d2::{ConnectionManager, Pool, PooledConnection},

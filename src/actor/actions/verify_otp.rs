@@ -13,7 +13,7 @@ use magic_crypt::{new_magic_crypt, MagicCryptTrait};
 use sha2::Sha256;
 
 use crate::{
-    actor::{get_claims, get_user_by_id, models::LoginResponse, user::VerifyOtp, DbActor},
+    actor::{get_user_by_id, models::LoginResponse, user::VerifyOtp, DbActor},
     database::models::User,
     middleware::models::{SessionInfo, SessionType, TokenClaims},
 };
@@ -24,8 +24,7 @@ pub fn verify_otp(
 ) -> std::result::Result<LoginResponse, String> {
     let mut conn = db_actor.pool.get().expect("Unable to get a connection");
 
-    let claims = get_claims(db_actor, &msg.token, SessionType::OTP)?;
-    let user = get_user_by_id(&claims.id, &mut conn)?;
+    let user = get_user_by_id(&msg.id, &mut conn)?;
 
     let decrypt_secret = get_decrypt_secret(db_actor, &user)?;
 

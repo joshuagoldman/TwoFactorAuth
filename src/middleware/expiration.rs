@@ -15,7 +15,7 @@ use super::{
     token_has_not_expired,
 };
 
-pub fn validator(req: &ServiceRequest) -> std::result::Result<(), String> {
+pub fn validator(req: &ServiceRequest) -> std::result::Result<TokenClaims, String> {
     dotenv().ok();
     let token_str = get_token_str(req)?;
 
@@ -33,7 +33,7 @@ pub fn validator(req: &ServiceRequest) -> std::result::Result<(), String> {
 
     session_not_expired_action(&basic_info.claims, &basic_info.session_type, &mut conn)?;
 
-    Ok(())
+    Ok(basic_info.claims)
 }
 
 fn get_app_data(req: &ServiceRequest) -> std::result::Result<&DbActor, String> {

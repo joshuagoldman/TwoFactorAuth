@@ -4,9 +4,8 @@ use diesel::{
 };
 
 use crate::{
-    actor::{get_claims, get_user_by_id, models::UserResponse, user::DeleteUser, DbActor},
+    actor::{get_user_by_id, models::UserResponse, user::DeleteUser, DbActor},
     database::models::User,
-    middleware::models::SessionType,
 };
 
 pub fn delete_user(
@@ -15,8 +14,7 @@ pub fn delete_user(
 ) -> std::result::Result<UserResponse, String> {
     let mut conn = db_actor.pool.get().expect("Unable to get a connection");
 
-    let claims = get_claims(&db_actor, &msg.token, SessionType::UserPage)?;
-    let user = get_user_by_id(&claims.id, &mut conn)?;
+    let user = get_user_by_id(&msg.id, &mut conn)?;
 
     delete_user_db(&user.username, &mut conn)?;
 

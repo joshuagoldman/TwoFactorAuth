@@ -6,6 +6,7 @@ use hmac::{digest::KeyInit, Hmac};
 use jwt::SignWithKey;
 use serde::Serialize;
 use sha2::Sha256;
+use uuid::Uuid;
 
 use crate::middleware::models::TokenClaimsWithTime;
 
@@ -76,7 +77,7 @@ impl Handler<Create> for DbActor {
 #[rtype(result = "std::result::Result<LoginResponse,String>")]
 pub struct VerifyOtp {
     pub otp: String,
-    pub token: String,
+    pub id: Uuid,
 }
 
 impl Handler<VerifyOtp> for DbActor {
@@ -91,7 +92,7 @@ impl Handler<VerifyOtp> for DbActor {
 #[rtype(result = "std::result::Result<UserResponse,String>")]
 pub struct ResetPassword {
     pub password: String,
-    pub token: String,
+    pub id: Uuid,
 }
 
 impl Handler<ResetPassword> for DbActor {
@@ -105,7 +106,7 @@ impl Handler<ResetPassword> for DbActor {
 #[derive(Message, Clone)]
 #[rtype(result = "std::result::Result<UserResponse,String>")]
 pub struct DeleteUser {
-    pub token: String,
+    pub id: Uuid,
 }
 
 impl Handler<DeleteUser> for DbActor {
