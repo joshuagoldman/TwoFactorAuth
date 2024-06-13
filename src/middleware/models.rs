@@ -19,6 +19,7 @@ pub struct TokenClaims {
 #[derive(Clone, Queryable, Insertable, Debug, Serialize, Deserialize)]
 #[diesel(table_name = sessions)]
 pub struct SessionInfo {
+    pub id: Uuid,
     pub user_id: Uuid,
     pub session_type: String,
     pub refresh_time: std::time::SystemTime,
@@ -27,6 +28,7 @@ pub struct SessionInfo {
 impl SessionInfo {
     pub fn new() -> Self {
         Self {
+            id: Uuid::new_v4(),
             user_id: Uuid::new_v4(),
             session_type: SessionType::UserPage.to_string(),
             refresh_time: SystemTime::now(),

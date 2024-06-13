@@ -12,6 +12,7 @@ use hmac::{
 };
 use jwt::SignWithKey;
 use sha2::Sha256;
+use uuid::Uuid;
 
 use crate::{
     actor::{models::LoginResponse, user::Login, DbActor},
@@ -96,6 +97,7 @@ fn insert_new_otp_session(
 ) -> Result<LoginResponse, String> {
     let insert_resp = diesel::insert_into(crate::schema::sessions::dsl::sessions)
         .values(SessionInfo {
+            id: Uuid::new_v4(),
             session_type: SessionType::OTP.to_string(),
             refresh_time: claims.created.clone(),
             user_id: found_user.id.clone(),

@@ -10,7 +10,11 @@ create table public.users(
 );
 
 create table public.sessions(
-    user_id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY,
+    user_id UUID not null,
     session_type varchar not null,
     refresh_time timestamp not null
 );
+
+--alter table public.sessions drop constraint sessions_user_id_fkey;
+alter table public.sessions add constraint user_id_w_session_type unique (user_id,session_type);

@@ -1,7 +1,8 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    sessions (user_id) {
+    sessions (id) {
+        id -> Uuid,
         user_id -> Uuid,
         session_type -> Varchar,
         refresh_time -> Timestamp,

@@ -1,5 +1,3 @@
-use std::time::SystemTime;
-
 use diesel::{
     r2d2::{ConnectionManager, PooledConnection},
     PgConnection,
@@ -12,11 +10,13 @@ use jwt::SignWithKey;
 use magic_crypt::{new_magic_crypt, MagicCryptTrait};
 use sha2::Sha256;
 use totp_rs::TOTP;
+use uuid::Uuid;
 
 use crate::{
     actor::{get_user_by_id, models::LoginResponse, user::VerifyOtp, DbActor},
     database::models::User,
     middleware::models::{SessionInfo, SessionType, TokenClaims},
+    schema,
 };
 
 use super::create_totp;
@@ -33,6 +33,7 @@ pub fn verify_otp(
 
     let totp = create_totp(&decrypt_secret, &user.email)?;
     let code = get_code(&totp)?;
+    println!("koden e: {}", code);
 
     otps_are_equal(&code, &msg.otp)?;
 
@@ -41,6 +42,7 @@ pub fn verify_otp(
     let token_str = get_token_str(jwt_secret, user.id)?;
 
     let session_info = SessionInfo {
+        id: Uuid::new_v4(),
         user_id: user.id,
         session_type: SessionType::UserPage.to_string(),
         refresh_time: std::time::SystemTime::now(),
@@ -110,21 +112,26 @@ fn get_token_str(
 fn insert_or_update_session(
     new_session: &SessionInfo,
     conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
-) -> Result<(), String> {
+) -> Result<SessionInfo, String> {
     use crate::schema::sessions::dsl::{refresh_time, session_type, sessions, user_id};
     use diesel::prelude::*;
-    let res = diesel::insert_into(sessions)
-        .values(new_session)
-        .on_conflict((user_id, session_type))
-        .do_update()
-        .set((
-            refresh_time.eq(SystemTime::now()),
-            session_type.eq(SessionType::UserPage.to_string()),
-        ))
-        .execute(conn);
 
-    match res {
-        Ok(_) => Ok(()),
-        Err(err) => std::result::Result::Err(err.to_string()),
+    let session_exists_res = sessions
+        .filter(user_id.eq(new_session.user_id))
+        .filter(session_type.eq(new_session.session_type.to_string()))
+        .get_result::<SessionInfo>(conn);
+
+    if let Ok(_) = session_exists_res {
+        diesel::update(schema::sessions::dsl::sessions)
+            .filter(user_id.eq(new_session.user_id))
+            .filter(session_type.eq(new_session.session_type.to_string()))
+            .set(refresh_time.eq(&new_session.refresh_time))
+            .get_result::<SessionInfo>(conn)
+            .map_err(|err| format!("{:?>}", err))
+    } else {
+        diesel::insert_into(sessions)
+            .values(new_session)
+            .get_result::<SessionInfo>(conn)
+            .map_err(|err| format!("{:?>}", err))
     }
 }
