@@ -1,29 +1,29 @@
 use std::time::SystemTime;
 
-use actix_web::dev::ServiceRequest;
+use actix_web::{dev::ServiceRequest, web::Data};
 use dotenv::*;
 
-use crate::{actor::DbActor, schema};
+use crate::{actor::DbActor, handlers::Authenticate, schema, AppState};
 use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, PooledConnection},
 };
 
 use super::{
-    get_session, get_token_str, get_validation_basic_info,
+    get_app_data, get_session, get_token_str, get_validation_basic_info,
     models::{SessionInfo, SessionType, TokenClaims},
     token_has_not_expired,
 };
 
-pub fn validator(req: &ServiceRequest) -> std::result::Result<TokenClaims, String> {
+pub fn validator(
+    db_actor: &DbActor,
+    msg: Authenticate,
+) -> std::result::Result<TokenClaims, String> {
     dotenv().ok();
-    let token_str = get_token_str(req)?;
 
-    let app_data = get_app_data(&req)?;
+    let mut conn = db_actor.pool.get().expect("unable to get connection");
 
-    let mut conn = app_data.pool.get().expect("unable to get connection");
-
-    let basic_info = get_validation_basic_info(app_data, &token_str)?;
+    let basic_info = get_validation_basic_info(db_actor, &msg.token)?;
 
     let session = get_session(&basic_info.claims, &basic_info.session_type, &mut conn)?;
 
@@ -34,13 +34,6 @@ pub fn validator(req: &ServiceRequest) -> std::result::Result<TokenClaims, Strin
     session_not_expired_action(&basic_info.claims, &basic_info.session_type, &mut conn)?;
 
     Ok(basic_info.claims)
-}
-
-fn get_app_data(req: &ServiceRequest) -> std::result::Result<&DbActor, String> {
-    match req.app_data::<DbActor>() {
-        Some(app_data_found) => Ok(app_data_found),
-        None => std::result::Result::Err("Could not get app data".to_string()),
-    }
 }
 
 fn session_not_expired_action(
@@ -59,5 +52,30 @@ fn session_not_expired_action(
     {
         Ok(_) => Ok(()),
         Err(error_info) => std::result::Result::Err(error_info.to_string()),
+    }
+}
+
+pub async fn validation(req: &ServiceRequest) -> std::result::Result<TokenClaims, String> {
+    let header_value_opt = req.headers().get("AUTHORIZATION");
+    let token_str = get_token_str(header_value_opt)?;
+    let addr = get_app_data(req)?;
+    is_valid(&token_str, &addr).await
+}
+
+pub async fn is_valid(
+    token_str: &String,
+    state: &Data<AppState>,
+) -> std::result::Result<TokenClaims, String> {
+    let addr = state.addr.clone();
+
+    match addr
+        .send(Authenticate {
+            token: token_str.clone(),
+        })
+        .await
+    {
+        Ok(Ok(token_claims)) => Ok(token_claims),
+        Ok(Err(err)) => std::result::Result::Err(format!("{:?>}", err)),
+        Err(err) => std::result::Result::Err(format!("{:?>}", err)),
     }
 }

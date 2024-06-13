@@ -14,9 +14,10 @@ use jwt::SignWithKey;
 use sha2::Sha256;
 
 use crate::{
-    actor::{diesel_err_to_string, models::LoginResponse, user::Login, DbActor},
+    actor::{models::LoginResponse, user::Login, DbActor},
     database::models::User,
     middleware::models::{SessionInfo, SessionType, TokenClaimsWithTime},
+    schema,
 };
 
 pub fn login(db_actor: &DbActor, msg: Login) -> std::result::Result<LoginResponse, String> {
@@ -49,7 +50,7 @@ fn get_user(
 
     match found_user {
         Ok(ok_res) => Ok(ok_res),
-        Err(err) => std::result::Result::Err(diesel_err_to_string(err)),
+        Err(err) => std::result::Result::Err(format!("{:?>}", err)),
     }
 }
 
@@ -64,7 +65,7 @@ fn is_valid(found_user: &User, msg: Login, db_actor: &DbActor) -> std::result::R
     match is_valid {
         Ok(true) => std::result::Result::Ok(()),
         Ok(false) => std::result::Result::Err("User validation failed".to_string()),
-        Err(err) => std::result::Result::Err(err.to_string()),
+        Err(err) => std::result::Result::Err(format!("{:?>}", err)),
     }
 }
 
@@ -74,7 +75,7 @@ fn get_jwt_secret(db_actor: &DbActor) -> std::result::Result<Hmac<Sha256>, Strin
 
     match jwt_secret_res {
         Ok(jwt_secret) => Ok(jwt_secret),
-        Err(err) => return std::result::Result::Err(err.to_string()),
+        Err(err) => return std::result::Result::Err(format!("{:?>}", err)),
     }
 }
 
@@ -83,7 +84,7 @@ fn get_token_str(claims: &TokenClaimsWithTime, jwt_secret: Hmac<Sha256>) -> Resu
 
     match token_str_resp {
         Ok(token_str) => Ok(token_str),
-        Err(err) => Result::Err(err.to_string()),
+        Err(err) => Result::Err(format!("{:?>}", err)),
     }
 }
 
@@ -99,6 +100,12 @@ fn insert_new_otp_session(
             refresh_time: claims.created.clone(),
             user_id: found_user.id.clone(),
         })
+        .on_conflict((schema::sessions::user_id, schema::sessions::session_type))
+        .do_update()
+        .set((
+            schema::sessions::session_type.eq(SessionType::OTP.to_string()),
+            schema::sessions::refresh_time.eq(SystemTime::now()),
+        ))
         .get_result::<SessionInfo>(conn);
 
     match insert_resp {
@@ -106,6 +113,6 @@ fn insert_new_otp_session(
             token: token_str,
             username: found_user.username,
         }),
-        Err(err) => std::result::Result::Err(err.to_string()),
+        Err(err) => std::result::Result::Err(format!("{:?>}", err)),
     }
 }

@@ -77,7 +77,7 @@ pub fn to_hash(secret_key: &String, password: &String) -> std::result::Result<St
 
     match hasher_res {
         Ok(hash_str) => Ok(hash_str),
-        Err(err) => std::result::Result::Err(err.to_string()),
+        Err(err) => std::result::Result::Err(format!("{:?>}", err)),
     }
 }
 

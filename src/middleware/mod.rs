@@ -1,4 +1,4 @@
-use actix_web::{dev::ServiceRequest, http::header::HeaderValue};
+use actix_web::{dev::ServiceRequest, http::header::HeaderValue, web::Data};
 use diesel::{
     r2d2::{ConnectionManager, PooledConnection},
     ExpressionMethods, PgConnection, QueryDsl,
@@ -9,9 +9,10 @@ use models::{SessionInfo, SessionType, TokenClaims, TokenClaimsWithTime};
 use parse_duration::parse;
 use sha2::Sha256;
 
-use crate::{actor::DbActor, schema};
+use crate::{actor::DbActor, schema, AppState};
 use diesel::prelude::*;
 
+pub mod api_response;
 pub mod authentication;
 pub mod expiration;
 pub mod models;
@@ -25,8 +26,10 @@ pub fn token_has_not_expired(
     let elapsed_time = token_created_time.elapsed().unwrap();
 
     if elapsed_time.as_secs() > max_duration.as_secs() {
+        println!("token has not expired");
         false
     } else {
+        println!("token has expired");
         true
     }
 }
@@ -96,20 +99,30 @@ pub fn get_session(
     }
 }
 
-pub fn get_token_str(req: &ServiceRequest) -> std::result::Result<String, String> {
-    let token_str_res = get_token_str_res(req.headers().get("AUTHORIZATION"))?;
-
+pub fn get_token_str(
+    header_value_opt: Option<&HeaderValue>,
+) -> std::result::Result<String, String> {
+    let token_str_res = get_header_value_res(header_value_opt)?;
     match token_str_res.to_str() {
         Ok(token_str) => Ok(token_str.to_string()),
         Err(err) => std::result::Result::Err(err.to_string()),
     }
 }
 
-fn get_token_str_res(
+fn get_header_value_res(
     token_str_res_opt: Option<&HeaderValue>,
 ) -> std::result::Result<&HeaderValue, String> {
     match token_str_res_opt {
         Some(token_str_res) => Ok(token_str_res),
         _ => std::result::Result::Err("Could extract token from header".to_string()),
+    }
+}
+
+pub fn get_app_data(req: &ServiceRequest) -> std::result::Result<Data<AppState>, String> {
+    let addr_res = req.app_data::<Data<AppState>>();
+
+    match addr_res {
+        Some(addr) => Ok(addr.to_owned()),
+        None => std::result::Result::Err("Could not get app data".to_string()),
     }
 }

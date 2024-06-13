@@ -27,7 +27,8 @@ async fn create_user(user: Json<NewUserData>, state: Data<AppState>) -> impl Res
         .await
     {
         Ok(Ok(user)) => HttpResponse::Ok().json(user),
-        _ => HttpResponse::InternalServerError().json("Something went wrong"),
+        Ok(Err(err)) => HttpResponse::InternalServerError().json(format!("{:?>}", err)),
+        Err(err) => HttpResponse::InternalServerError().json(format!("{:?>}", err)),
     }
 }
 

@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::database::models::NewUser;
-
 #[derive(Clone, Serialize)]
 pub struct GetTokenResponse {
     pub token: String,
@@ -20,13 +18,19 @@ pub struct LoginResponse {
 
 #[derive(Clone, Serialize)]
 pub struct CreateUserResponse {
-    pub user: NewUser,
+    pub user: UserResponse,
     pub qr_code: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserResponse {
     pub username: String,
     pub email: String,
     pub full_name: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SessionForDisplay {
+    pub session_type: String,
+    pub refresh_time: std::time::SystemTime,
 }

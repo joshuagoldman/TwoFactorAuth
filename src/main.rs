@@ -1,3 +1,5 @@
+use actix_web_lab::middleware::from_fn;
+
 use actix::SyncArbiter;
 use actix_web::{
     web::{self, Data},
@@ -6,7 +8,7 @@ use actix_web::{
 use dotenv::dotenv;
 use two_factor_auth_gen::{
     actor::DbActor, config::Config, database::connect::get_pool, handlers,
-    middleware::authentication::Authentication, AppState,
+    middleware::authentication::authentication_middleware, AppState,
 };
 
 #[actix_web::main]
@@ -32,11 +34,11 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::index)
             .service(handlers::user::create_user)
             .service(handlers::user::login)
-            .service(handlers::user::verify_otp)
             .service(handlers::user::has_expired)
             .service(
                 web::scope("")
-                    .wrap(Authentication)
+                    .wrap(from_fn(authentication_middleware))
+                    .service(handlers::user::verify_otp)
                     .service(handlers::user::change_password)
                     .service(handlers::user::delete_user)
                     .service(handlers::user::get_user),

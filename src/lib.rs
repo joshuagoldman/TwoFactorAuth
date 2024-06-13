@@ -8,6 +8,7 @@ pub mod handlers;
 pub mod middleware;
 pub mod schema;
 
+#[derive(Clone)]
 pub struct AppState {
     pub addr: Addr<DbActor>,
 }

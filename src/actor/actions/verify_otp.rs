@@ -11,12 +11,15 @@ use hmac::{
 use jwt::SignWithKey;
 use magic_crypt::{new_magic_crypt, MagicCryptTrait};
 use sha2::Sha256;
+use totp_rs::TOTP;
 
 use crate::{
     actor::{get_user_by_id, models::LoginResponse, user::VerifyOtp, DbActor},
     database::models::User,
     middleware::models::{SessionInfo, SessionType, TokenClaims},
 };
+
+use super::create_totp;
 
 pub fn verify_otp(
     db_actor: &DbActor,
@@ -28,7 +31,8 @@ pub fn verify_otp(
 
     let decrypt_secret = get_decrypt_secret(db_actor, &user)?;
 
-    let code = get_code(&decrypt_secret)?;
+    let totp = create_totp(&decrypt_secret, &user.email)?;
+    let code = get_code(&totp)?;
 
     otps_are_equal(&code, &msg.otp)?;
 
@@ -64,13 +68,12 @@ fn get_decrypt_secret(
     }
 }
 
-fn get_code(decrypt_secret: &String) -> std::result::Result<String, String> {
-    let auth = google_authenticator::GoogleAuthenticator::new();
-    let code_res = auth.get_code(decrypt_secret.as_str(), 0);
+fn get_code(totp: &TOTP) -> std::result::Result<String, String> {
+    let res = totp.generate_current();
 
-    match code_res {
+    match res {
         Ok(ok_res) => Ok(ok_res),
-        Err(err) => std::result::Result::Err(err.to_string()),
+        Err(err) => std::result::Result::Err(format!("{:?>}", err)),
     }
 }
 
