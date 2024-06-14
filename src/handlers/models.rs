@@ -15,6 +15,11 @@ pub struct LoginData {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct PasswordRequest {
+    pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ChangePasswordData {
     pub password: String,
     pub id: uuid::Uuid,

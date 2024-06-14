@@ -6,8 +6,11 @@ use actix_web::{
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use crate::{
-    actor::user::{Create, DeleteUser, GetUser, Login, ResetPassword, TokenHasExpired, VerifyOtp},
-    handlers::models::{LoginData, NewUserData},
+    actor::user::{
+        Create, DeleteUser, GetUser, Login, ResetPassword, TokenHasExpired, VerifyOtp,
+        VerifyPassword,
+    },
+    handlers::models::{LoginData, NewUserData, PasswordRequest},
     middleware::models::TokenClaims,
     AppState,
 };
@@ -75,14 +78,14 @@ async fn verify_otp(
     }
 }
 
-#[post("/changepass/{password}")]
+#[post("/changepass")]
 async fn change_password(
-    password: Path<String>,
+    req: Json<PasswordRequest>,
     claims_opt: Option<web::ReqData<TokenClaims>>,
     state: Data<AppState>,
 ) -> impl Responder {
     let addr = state.as_ref().addr.clone();
-    let password = password.into_inner();
+    let req = req.into_inner();
 
     if claims_opt.is_none() {
         return HttpResponse::NonAuthoritativeInformation().json("Something went wrong");
@@ -90,7 +93,7 @@ async fn change_password(
 
     match addr
         .send(ResetPassword {
-            password,
+            password: req.password,
             id: claims_opt.unwrap().id,
         })
         .await
@@ -139,6 +142,30 @@ async fn has_expired(credentials: BearerAuth, state: Data<AppState>) -> impl Res
     match addr
         .send(TokenHasExpired {
             token: credentials.token().to_string(),
+        })
+        .await
+    {
+        Ok(Ok(user)) => HttpResponse::Ok().json(user),
+        _ => HttpResponse::InternalServerError().json("Something went wrong"),
+    }
+}
+
+#[post("/verifypass")]
+async fn verify_password(
+    req: Json<PasswordRequest>,
+    claims_opt: Option<web::ReqData<TokenClaims>>,
+    state: Data<AppState>,
+) -> impl Responder {
+    let addr = state.as_ref().addr.clone();
+    let req = req.into_inner();
+
+    if claims_opt.is_none() {
+        return HttpResponse::NonAuthoritativeInformation().json("Something went wrong");
+    }
+    match addr
+        .send(VerifyPassword {
+            id: claims_opt.unwrap().id,
+            password: req.password,
         })
         .await
     {

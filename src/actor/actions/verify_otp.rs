@@ -33,7 +33,6 @@ pub fn verify_otp(
 
     let totp = create_totp(&decrypt_secret, &user.email)?;
     let code = get_code(&totp)?;
-    println!("koden e: {}", code);
 
     otps_are_equal(&code, &msg.otp)?;
 

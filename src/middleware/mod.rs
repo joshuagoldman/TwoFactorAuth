@@ -26,10 +26,8 @@ pub fn token_has_not_expired(
     let elapsed_time = token_created_time.elapsed().unwrap();
 
     if elapsed_time.as_secs() > max_duration.as_secs() {
-        println!("token has not expired");
         false
     } else {
-        println!("token has expired");
         true
     }
 }

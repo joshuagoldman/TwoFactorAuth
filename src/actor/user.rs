@@ -120,8 +120,8 @@ impl Handler<DeleteUser> for DbActor {
 #[derive(Message, Clone)]
 #[rtype(result = "std::result::Result<(),String>")]
 pub struct VerifyPassword {
-    pub username: String,
     pub password: String,
+    pub id: Uuid,
 }
 
 impl Handler<VerifyPassword> for DbActor {
