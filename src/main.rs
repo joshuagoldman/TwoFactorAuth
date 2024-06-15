@@ -1,7 +1,9 @@
+use actix_cors::Cors;
 use actix_web_lab::middleware::from_fn;
 
 use actix::SyncArbiter;
 use actix_web::{
+    http,
     web::{self, Data},
     App, HttpServer,
 };
@@ -17,6 +19,7 @@ async fn main() -> std::io::Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let host = std::env::var("HOST").expect("HOST is expected");
     let port = std::env::var("PORT").expect("PORT is expected");
+    let allowe_origin = std::env::var("ALLOWED_ORIGIN").expect("ALLOWED ORIGIN is expected");
     //let allowed_origin = std::env::var("ALLOWED_ORIGIN").expect("ALLOWED_ORIGIN is expected");
 
     println!("Running on address {}:{}", &host, &port);
@@ -29,7 +32,15 @@ async fn main() -> std::io::Result<()> {
             config: config.clone(),
         });
 
+        let cors = Cors::default()
+            .allowed_origin(allowe_origin.as_str())
+            .allowed_methods(vec!["GET", "POST", "DELETE"])
+            .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+            .allowed_header(http::header::CONTENT_TYPE)
+            .max_age(3600);
+
         App::new()
+            .wrap(cors)
             .app_data(Data::new(AppState { addr: db_addr }))
             .service(handlers::index)
             .service(handlers::user::create_user)
@@ -41,7 +52,8 @@ async fn main() -> std::io::Result<()> {
                     .service(handlers::user::verify_otp)
                     .service(handlers::user::change_password)
                     .service(handlers::user::delete_user)
-                    .service(handlers::user::get_user),
+                    .service(handlers::user::get_user)
+                    .service(handlers::user::verify_password),
             )
     })
     .bind(format!("{}:{}", &host, &port))?

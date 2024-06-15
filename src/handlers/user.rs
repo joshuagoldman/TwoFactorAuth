@@ -99,6 +99,7 @@ async fn change_password(
         .await
     {
         Ok(Ok(user)) => HttpResponse::Ok().json(user),
+        Ok(Err(err)) => HttpResponse::InternalServerError().json(err),
         _ => HttpResponse::InternalServerError().json("Something went wrong"),
     }
 }
@@ -120,6 +121,7 @@ async fn delete_user(
         .await
     {
         Ok(Ok(user)) => HttpResponse::Ok().json(user),
+        Ok(Err(err)) => HttpResponse::InternalServerError().json(err),
         _ => HttpResponse::InternalServerError().json("Something went wrong"),
     }
 }
@@ -142,6 +144,7 @@ async fn get_user(
         .await
     {
         Ok(Ok(user)) => HttpResponse::Ok().json(user),
+        Ok(Err(err)) => HttpResponse::InternalServerError().json(err),
         _ => HttpResponse::InternalServerError().json("Something went wrong"),
     }
 }
@@ -157,6 +160,7 @@ async fn has_expired(credentials: BearerAuth, state: Data<AppState>) -> impl Res
         .await
     {
         Ok(Ok(user)) => HttpResponse::Ok().json(user),
+        Ok(Err(err)) => HttpResponse::InternalServerError().json(err),
         _ => HttpResponse::InternalServerError().json("Something went wrong"),
     }
 }
@@ -181,6 +185,7 @@ async fn verify_password(
         .await
     {
         Ok(Ok(user)) => HttpResponse::Ok().json(user),
+        Ok(Err(err)) => HttpResponse::InternalServerError().json(err),
         _ => HttpResponse::InternalServerError().json("Something went wrong"),
     }
 }

@@ -118,14 +118,14 @@ impl Handler<DeleteUser> for DbActor {
 }
 
 #[derive(Message, Clone)]
-#[rtype(result = "std::result::Result<(),String>")]
+#[rtype(result = "std::result::Result<UserResponse,String>")]
 pub struct VerifyPassword {
     pub password: String,
     pub id: Uuid,
 }
 
 impl Handler<VerifyPassword> for DbActor {
-    type Result = std::result::Result<(), String>;
+    type Result = std::result::Result<UserResponse, String>;
 
     fn handle(&mut self, msg: VerifyPassword, _: &mut Self::Context) -> Self::Result {
         verify_password(&self, msg)
