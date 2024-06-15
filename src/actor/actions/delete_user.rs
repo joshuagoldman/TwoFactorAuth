@@ -6,6 +6,7 @@ use diesel::{
 use crate::{
     actor::{get_user_by_id, models::UserResponse, user::DeleteUser, DbActor},
     database::models::User,
+    middleware::models::SessionInfo,
 };
 
 pub fn delete_user(
@@ -17,6 +18,7 @@ pub fn delete_user(
     let user = get_user_by_id(&msg.id, &mut conn)?;
 
     delete_user_db(&user.username, &mut conn)?;
+    delete_user_session_db(&user.id, &mut conn)?;
 
     Ok(UserResponse {
         username: user.username,
@@ -34,6 +36,22 @@ fn delete_user_db(
     let res = diesel::delete(crate::schema::users::dsl::users)
         .filter(crate::schema::users::username.eq(username))
         .get_result::<User>(conn);
+
+    match res {
+        Ok(_) => Ok(()),
+        Err(err) => std::result::Result::Err(err.to_string()),
+    }
+}
+
+fn delete_user_session_db(
+    user_id: &uuid::Uuid,
+    conn: &mut PooledConnection<ConnectionManager<PgConnection>>,
+) -> Result<(), String> {
+    use diesel::prelude::*;
+
+    let res = diesel::delete(crate::schema::sessions::dsl::sessions)
+        .filter(crate::schema::sessions::user_id.eq(user_id))
+        .get_result::<SessionInfo>(conn);
 
     match res {
         Ok(_) => Ok(()),
