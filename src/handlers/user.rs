@@ -124,12 +124,23 @@ async fn delete_user(
     }
 }
 
-#[get("/user/{username}")]
-async fn get_user(username: Path<String>, state: Data<AppState>) -> impl Responder {
+#[get("/user")]
+async fn get_user(
+    claims_opt: Option<web::ReqData<TokenClaims>>,
+    state: Data<AppState>,
+) -> impl Responder {
     let addr = state.as_ref().addr.clone();
-    let username = username.into_inner();
 
-    match addr.send(GetUser { username }).await {
+    if claims_opt.is_none() {
+        return HttpResponse::NonAuthoritativeInformation().json("Something went wrong");
+    }
+
+    match addr
+        .send(GetUser {
+            id: claims_opt.unwrap().id,
+        })
+        .await
+    {
         Ok(Ok(user)) => HttpResponse::Ok().json(user),
         _ => HttpResponse::InternalServerError().json("Something went wrong"),
     }

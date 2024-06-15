@@ -1,9 +1,9 @@
-use crate::actor::{get_user_db, models::UserResponse, user::GetUser, DbActor};
+use crate::actor::{get_user_by_id, models::UserResponse, user::GetUser, DbActor};
 
 pub fn get_user(db_actor: &DbActor, msg: GetUser) -> std::result::Result<UserResponse, String> {
     let mut conn = db_actor.pool.get().expect("Unable to get a connection");
 
-    let user = get_user_db(msg.username.clone(), &mut conn)?;
+    let user = get_user_by_id(&msg.id, &mut conn)?;
 
     Ok(UserResponse {
         username: user.username,

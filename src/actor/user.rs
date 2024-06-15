@@ -149,7 +149,7 @@ impl Handler<TokenHasExpired> for DbActor {
 #[derive(Message, Clone)]
 #[rtype(result = "std::result::Result<UserResponse,String>")]
 pub struct GetUser {
-    pub username: String,
+    pub id: Uuid,
 }
 
 impl Handler<GetUser> for DbActor {
