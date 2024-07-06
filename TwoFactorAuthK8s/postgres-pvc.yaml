@@ -1,0 +1,18 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: postgres-pv-claim
+  labels: 
+    app: postgres
+  namespace: dev
+spec:
+  selector:
+    matchLabels:  #Select a volume with this labels
+          app: postgres
+          ver: postgres-pv
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi

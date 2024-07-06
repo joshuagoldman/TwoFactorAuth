@@ -1,0 +1,76 @@
+# Configure 'Deployment' of postgres server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+    tier: database
+  namespace: dev
+spec:
+  selector: # psql Pod Should contain same labels
+    matchLabels:
+      app: postgres
+      tier: database
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels: # Must match 'Service' and 'Deployment' selectors
+        app: postgres
+        tier: database
+    spec:
+      containers:
+        - image: ubuntu/postgres:latest # image from docker-hub
+          imagePullPolicy: Always
+          name: postgres
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom :
+                secretKeyRef :
+                  name : postgres-secrets
+                  key :  password
+
+            - name: POSTGRES_DB # Setting Database Name from a 'ConfigMap'
+              valueFrom :
+                configMapKeyRef :
+                  name : db-config
+                  key :  dbName
+
+            - name: POSTGRES_USER # SettinUser from a 'ConfigMap'
+              valueFrom :
+                secretKeyRef :
+                  name : postgres-secrets
+                  key :  user
+            - name: PGDATA # SettinUser from a 'ConfigMap'
+              valueFrom :
+                 configMapKeyRef:
+                  name : db-config
+                  key :  pgData
+          ports:
+            - containerPort: 5432
+              name: postgres
+          volumeMounts:        # Mounting voulume obtained from Persistent Volume Claim
+            - name: postgres-persistent-storage
+              mountPath: /var/lib/postgresql/data #This is the path in the container on which the mounting will take place.
+      volumes:
+        - name: postgres-persistent-storage # Obtaining 'vloume' from PVC
+          persistentVolumeClaim:
+            claimName: postgres-pv-claim
+---      
+# Define a 'Service' To Expose postgres to Other Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service  # DNS name
+  labels:
+    app: postgres
+    tier: database
+  namespace: dev
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:       # postgres Pod Should contain same labels
+    app: postgres
+    tier: database

@@ -1,0 +1,17 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: postgres-pv
+  labels: #Labels 
+      app: postgres
+      ver: postgres-pv
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+      server: 10.100.102.53
+      path: "/mnt/kubernetes"
