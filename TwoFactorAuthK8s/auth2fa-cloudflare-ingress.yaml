@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  creationTimestamp: "2024-07-10T22:33:37Z"
+  finalizers:
+  - strrl.dev/cloudflare-tunnel-ingress-controller-controlled
+  generation: 1
+  name: auth2fa-cloudflare-ingress
+  namespace: dev
+  resourceVersion: "36363"
+  uid: 68e3d383-4830-4a89-8c90-4d6478c44afa
+spec:
+  ingressClassName: cloudflare-tunnel
+  rules:
+  - host: auth2fa.goldmanj.info
+    http:
+      paths:
+      - backend:
+          service:
+            name: auth2fa-app-service
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - auth2fa.goldmanj.info
+    secretName: auth2fa-tls
+status:
+  loadBalancer:
+    ingress:
+    - hostname: 9d9f03ee-9ae6-414a-bc13-78e9367406f3.cfargotunnel.com
+      ports:
+      - port: 443
+        protocol: TCP

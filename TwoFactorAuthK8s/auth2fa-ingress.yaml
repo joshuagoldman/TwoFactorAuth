@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth2fa-ingress
+  namespace: dev
+
+spec:
+  tls:
+    - secretName: auth2fa-tls
+      hosts: 
+        - "local.auth2fa.goldmanj.info"
+  rules:
+    - host: local.auth2fa.goldmanj.info
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name:  auth2fa-app-service
+                port:
+                  number: 8080

@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   backend:
-    image: joshuagoldman1994/auth2fa:2.0.0-t5
+    image: joshuagoldman1994/auth2fa:2.0.0-t6
     build: 
       context: .
       dockerfile: ./prebuild.dockerfile

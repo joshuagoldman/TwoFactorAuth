@@ -8,9 +8,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: auth2fa-app-deployment
+  namespace: dev
   labels:
     app: auth2fa-app
-  namespace: dev
 spec:
   replicas: 1
   selector:
@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: auth2fa-app
-        image: "joshuagoldman1994/auth2fa-app:2.0.0-t7"
+        image: "joshuagoldman1994/auth2fa-app:2.0.0-t18"
         ports:
         - containerPort: 8080
 ---
@@ -32,16 +32,12 @@ kind: Service
 metadata:
   name: auth2fa-app-service
   namespace: dev
-  annotations:
-      service.beta.kubernetes.io/aws-load-balancer-type: nlb
-      service.beta.kubernetes.io/aws-load-balancer-internal: "true"
 spec:
-  type: LoadBalancer
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
   selector:
     app: auth2fa-app
-  externalTrafficPolicy: Local
-  ports:
-    - protocol: TCP
-      port: 8080
-      targetPort: 8080
-      nodePort: 30000
+
+            
