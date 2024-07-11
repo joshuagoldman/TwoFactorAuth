@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: auth2fa-app
-        image: "joshuagoldman1994/auth2fa-app:2.0.0-t18"
+        image: "joshuagoldman1994/auth2fa-app:2.0.0-t23"
         ports:
         - containerPort: 8080
 ---

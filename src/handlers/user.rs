@@ -104,7 +104,7 @@ async fn change_password(
     }
 }
 
-#[delete("/")]
+#[delete("/delete")]
 async fn delete_user(
     claims_opt: Option<web::ReqData<TokenClaims>>,
     state: Data<AppState>,

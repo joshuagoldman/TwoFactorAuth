@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
       - name: auth2fa
-        image: joshuagoldman1994/auth2fa:2.0.0-t6
+        image: joshuagoldman1994/auth2fa:2.0.0-t7
         ports:
         - containerPort: 3000
 ---
