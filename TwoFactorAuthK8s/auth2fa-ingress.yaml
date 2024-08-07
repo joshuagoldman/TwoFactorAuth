@@ -5,10 +5,10 @@ metadata:
   namespace: dev
 
 spec:
-  tls:
-    - secretName: auth2fa-tls
-      hosts: 
-        - "local.auth2fa.goldmanj.info"
+  #  tls:
+  #    - secretName: auth2fa-tls
+  #      hosts: 
+  #        - "local.auth2fa.goldmanj.info"
   rules:
     - host: local.auth2fa.goldmanj.info
       http:
